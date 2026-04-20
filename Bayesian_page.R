@@ -1,44 +1,54 @@
-# Coding page!
-
 data <- read.csv("data/cleaned.csv")
+data_size<- nrow(data)
+set.seed(632)
+train_ind <- sample(seq_len(data_size), size = floor(0.8 * data_size))
+
+data_train <- data[train_ind, ]
+data_test <- data[-train_ind, ]
 
 #standardizing the numerical variables
-data$milage_std <- scale(data$milage)
-data$age_std <- scale(data$age)
+data_train$mileage <- scale(data_train$milage)
+data_train$age <- scale(data_train$age)
 
-ids<-sort(unique(data$fuel_type)) 
+data_test$mileage <- scale(data_test$milage)
+data_test$age <- scale(data_test$age)
+
+# now if we fit them in groups:
+ids<-sort(unique(data$accident)) 
 m<-length(ids)
 Y<-list() ; X<-list() ; N<-NULL
+Y_test <- list()
+X_test <- list()
+N_test <- NULL
 for(j in 1:m)
 {
-  Y[[j]]<-data[data$fuel_type==ids[j], "price"]
-  N[j]<- sum(data$fuel_type==ids[j])
-  x1<-data[data$fuel_type==ids[j],"milage_std"] 
-  x2<-data[data$fuel_type==ids[j],"accident"]
-  x3<-data[data$fuel_type==ids[j],"age_std"]
-  X[[j]]<-cbind( rep(1,N[j]), x1,x2,x3  )
+  Y[[j]]<-data_train[data_train$accident==ids[j], "price"]
+  N[j]<- sum(data_train$accident==ids[j])
+  x1<-data_train[data_train$accident==ids[j],"mileage"] 
+  x2<-data_train[data_train$accident==ids[j],"fuel_type"]
+  x3<-data_train[data_train$accident==ids[j],"age"]
+  X[[j]]<-cbind( rep(1,N[j]), x1,x2,x3)
+  #################################
+  Y_test[[j]]<-data_test[data_test$accident==ids[j], "price"]
+  N_test[j]<- sum(data_test$accident==ids[j])
+  x1_test<-data_test[data_test$accident==ids[j],"mileage"] 
+  x2_test<-data_test[data_test$accident==ids[j],"fuel_type"]
+  x3_test<-data_test[data_test$accident==ids[j],"age"]
+  X_test[[j]]<-cbind( rep(1,N_test[j]), x1_test,x2_test,x3_test)
 }
-colnames(X[[j]]) <- c("Intercept","milage_std","accident","age_std")
+colnames(X[[j]]) <- c("Intercept","mileage","fuel_type","age")
+colnames(X_test[[j]]) <- c("Intercept","mileage","fuel_type","age")
 
 #### OLS fits
 S2.LS<-BETA.LS<-NULL
+OLS_fit_list <- list()
 for(j in 1:m) {
-  fit<-lm(Y[[j]]~ -1+X[[j]] )
-  BETA.LS<-rbind(BETA.LS,c(fit$coef)) 
-  S2.LS<-c(S2.LS, summary(fit)$sigma^2) 
+  fit_group<-lm(Y[[j]]~ -1+X[[j]] )
+  OLS_fit_list[[j]] <-fit_group
+  BETA.LS<-rbind(BETA.LS,c(fit_group$coef)) 
+  S2.LS<-c(S2.LS, summary(fit_group)$sigma^2) 
+  print(summary(fit_group))
 } 
-
-plot( range(data$age_std),range(data$price),type="n",xlab="age_std", 
-      ylab="log(Price)")
-for(j in 1:m) {    abline(BETA.LS[j,1],BETA.LS[j,4],col="gray")  }
-
-BETA.MLS<-apply(BETA.LS,2,mean)
-abline(BETA.MLS[1],BETA.MLS[4],lwd=2)
-
-plot(N,BETA.LS[,1],xlab="sample size",ylab="intercept")
-abline(h= BETA.MLS[1],col="black",lwd=2)
-plot(N,BETA.LS[,4],xlab="sample size",ylab="slope_age")
-abline(h= BETA.MLS[4],col="black",lwd=2)
 
 #### Hierarchical regression model
 
@@ -107,9 +117,11 @@ for(s in 1:10000) {
   s2<-1/rgamma(1,(nu0+sum(N))/2, (nu0*s20+RSS)/2 )
   ##
   ##store results
+  BETA.store <- list()
   if(s%%10==0) 
   { 
-     if (s%%100==0){cat(s,s2,"\n")}
+    BETA.store[[length(BETA.store)+1]] <- BETA
+    if (s%%1000==0){cat(s,s2,"\n")}
     S2.b<-c(S2.b,s2);THETA.b<-rbind(THETA.b,t(theta))
     Sigma.ps<-Sigma.ps+solve(iSigma) ; BETA.ps<-BETA.ps+BETA
     SIGMA.PS<-rbind(SIGMA.PS,c(solve(iSigma)))
@@ -132,5 +144,27 @@ tmp<-NULL;for(j in 1:dim(SIGMA.PS)[2]) { tmp<-c(tmp,acf(SIGMA.PS[,j])$acf[2]) }
 acf(S2.b)
 acf(THETA.b[,1])
 acf(THETA.b[,2])
+
+nkeep <- length(BETA.store)
+
+RMSE_test <- NULL
+
+for(j in 1:m){
+  
+  pred_mat <- matrix(0, nrow(X_test[[j]]), nkeep)
+  
+  for(s in 1:nkeep){
+    beta_draw <- BETA.store[[s]][j, ]
+    pred_mat[,s] <- X_test[[j]] %*% beta_draw
+  }
+  
+  pred_mean <- rowMeans(pred_mat)
+  
+  rmse <- sqrt(mean((Y_test[[j]] - pred_mean)^2))
+  
+  RMSE_test <- c(RMSE_test, rmse)
+}
+
+RMSE_test
 
 
