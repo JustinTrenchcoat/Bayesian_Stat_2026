@@ -164,7 +164,11 @@ for(j in 1:m){
   
   RMSE_test <- c(RMSE_test, rmse)
 }
-
 RMSE_test
 
 
+BETA.post <- BETA.ps / length(S2.b)
+for (k in 1:4){
+  plot(BETA.LS[,k], BETA.post[,k])
+  abline(0,1)
+}
