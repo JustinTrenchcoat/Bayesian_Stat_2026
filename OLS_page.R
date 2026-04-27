@@ -1,26 +1,30 @@
-data <- read.csv("data/cleaned.csv")
+library(rsample)
+set.seed(632)
+
+data <- read.csv("data/grouped.csv")
 data$fuel_type <- factor(data$fuel_type)
 data$brand <- factor(data$brand)
 data$accident <- factor(data$accident)
 
-data_size<- nrow(data)
-set.seed(632)
-train_ind <- sample(seq_len(data_size), size = floor(0.8 * data_size))
-
-data_train <- data[train_ind, ]
-data_test <- data[-train_ind, ]
-
 #standardizing the numerical variables
-data_train$mileage <- scale(data_train$mileage)
-data_train$age <- scale(data_train$age)
+data$mileage <- scale(data$mileage)
+data$age <- scale(data$age)
 
-data_test$mileage <- scale(data_test$mileage)
-data_test$age <- scale(data_test$age)
-pairs(data_train, pch=19, col='orange', lower.panel=panel.smooth)
+# data_split <- initial_split(data, prop = 0.8, strata = brand)
+# data_train <- training(data_split)
+# data_test  <- testing(data_split)
+# 
+# #standardizing the numerical variables
+# data_train$mileage <- scale(data_train$mileage)
+# data_train$age <- scale(data_train$age)
+# 
+# data_test$mileage <- scale(data_test$mileage)
+# data_test$age <- scale(data_test$age)
+pairs(data[,-5], pch=19, col='orange', lower.panel=panel.smooth)
 
 
 # preliminary OLS fit
-fit<-lm(price~1+mileage+fuel_type+age+accident, data = data_train)
+fit<-lm(price~1+mileage+fuel_type+age+accident, data = data)
 summary(fit)
 # plot(as.numeric(fitted(fit)), as.numeric(residuals(fit)), type="p")
 
@@ -36,24 +40,24 @@ X_test <- list()
 N_test <- NULL
 for(j in 1:m)
 {
-  Y[[j]]<-data_train[data_train$brand==ids[j], "price"]
-  N[j]<- sum(data_train$brand==ids[j])
-  x1<-data_train[data_train$brand==ids[j],"mileage"] 
-  x2<-data_train[data_train$brand==ids[j],"fuel_type"]
-  x3<-data_train[data_train$brand==ids[j],"age"]
-  x4 <- data_train[data_train$brand==ids[j], "accident"]
+  Y[[j]]<-data[data$brand==ids[j], "price"]
+  N[j]<- sum(data$brand==ids[j])
+  x1<-data[data$brand==ids[j],"mileage"] 
+  x2<-data[data$brand==ids[j],"fuel_type"]
+  x3<-data[data$brand==ids[j],"age"]
+  x4 <- data[data$brand==ids[j], "accident"]
   X[[j]]<-cbind( rep(1,N[j]), x1,x2,x3,x4)
   #################################
-  Y_test[[j]]<-data_test[data_test$brand==ids[j], "price"]
-  N_test[j]<- sum(data_test$brand==ids[j])
-  x1_test<-data_test[data_test$brand==ids[j],"mileage"] 
-  x2_test<-data_test[data_test$brand==ids[j],"fuel_type"]
-  x3_test<-data_test[data_test$brand==ids[j],"age"]
-  x4_test <- data_test[data_test$brand==ids[j], "accident"]
-  X_test[[j]]<-cbind( rep(1,N_test[j]), x1_test,x2_test,x3_test, x4_test)
+  # Y_test[[j]]<-data_test[data_test$brand==ids[j], "price"]
+  # N_test[j]<- sum(data_test$brand==ids[j])
+  # x1_test<-data_test[data_test$brand==ids[j],"mileage"] 
+  # x2_test<-data_test[data_test$brand==ids[j],"fuel_type"]
+  # x3_test<-data_test[data_test$brand==ids[j],"age"]
+  # x4_test <- data_test[data_test$brand==ids[j], "accident"]
+  # X_test[[j]]<-cbind( rep(1,N_test[j]), x1_test,x2_test,x3_test, x4_test)
 }
 colnames(X[[j]]) <- c("Intercept","mileage","fuel_type","age", "accident")
-colnames(X_test[[j]]) <- c("Intercept","mileage","fuel_type","age", "accident")
+# colnames(X_test[[j]]) <- c("Intercept","mileage","fuel_type","age", "accident")
 
 
 #### OLS fits
