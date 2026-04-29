@@ -1,22 +1,35 @@
-data <- read.csv("data/cleaned.csv")
+# this is the Bayesian page
+# in here we would use grouped data to fit multiple OLS
+# but we still use ungrouped data to create groups in Bayesian
+# we will use info from multiple OLS to build our Bayesian Prior
+# -------------------------------
+# necessary library
+# -------------------------------
+library(coda)
+# -------------------------------
+# load data
+# -------------------------------
+# data <- read.csv("data/cleaned.csv")
 data_grouped <- read.csv("data/grouped.csv")
 
 # -----------------------------
 # Data preprocessing
 # -----------------------------
-data$fuel_type <- factor(data$fuel_type)
-data$brand     <- factor(data$brand)
-data$accident  <- factor(data$accident)
-
-data$mileage <- as.numeric(scale(data$mileage))
-data$age     <- as.numeric(scale(data$age))
-
 data_grouped$fuel_type <- factor(data_grouped$fuel_type)
 data_grouped$brand     <- factor(data_grouped$brand)
 data_grouped$accident  <- factor(data_grouped$accident)
 
-data_grouped$mileage <- as.numeric(scale(data_grouped$mileage))
-data_grouped$age     <- as.numeric(scale(data_grouped$age))
+#standardizing the numerical variables
+m_mean <- mean(data_grouped$mileage)
+m_sd   <- sd(data_grouped$mileage)
+
+a_mean <- mean(data_grouped$age)
+a_sd   <- sd(data_grouped$age)
+
+
+data_grouped$mileage <- (data_grouped$mileage - m_mean) / m_sd
+data_grouped$age <- (data_grouped$age - a_mean) / a_sd
+
 # -----------------------------
 # Grouped OLS
 # -----------------------------
@@ -42,6 +55,8 @@ for(j in 1:m) {
   S2.LS<-c(S2.LS, summary(fit)$sigma^2) 
 } 
 
+# OLS betas vs sample size
+for (i in 1:4)
 
 #### Hierarchical regression model
 # new dataset
@@ -137,7 +152,6 @@ for(s in 1:10000) {
 
 
 ## MCMC diagnostics
-library(coda)
 effectiveSize(S2.b)
 effectiveSize(THETA.b[,1])
 effectiveSize(THETA.b[,2])
