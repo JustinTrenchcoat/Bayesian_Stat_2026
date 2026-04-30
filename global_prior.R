@@ -1,9 +1,4 @@
-# this is the testing page
-# in here we would only use data to fit global OLS
-# and use them to set up groups
-# we will use the global OLS for our Bayesian Prior
-
-
+# this is the page where we used global OLS information to build prior.
 
 # add OLS beta vs group size
 # effective sample size/MC error vs mean of THETA or other ones
