@@ -1,6 +1,5 @@
 # this is the Bayesian page
 # in here we would use grouped data to fit multiple OLS
-# but we still use ungrouped data to create groups in Bayesian
 # we will use info from multiple OLS to build our Bayesian Prior
 # -------------------------------
 # necessary library
@@ -11,7 +10,7 @@ library(coda)
 # -------------------------------
 data <- read.csv("data/grouped.csv")
 # -------------------------------
-# Data preprocessing
+# Data pre-processing
 # -------------------------------
 data$fuel_type <- factor(data$fuel_type)
 data$brand     <- factor(data$brand)
@@ -26,137 +25,35 @@ a_sd   <- sd(data$age)
 data$mileage <- (data$mileage - m_mean) / m_sd
 data$age <- (data$age - a_mean) / a_sd
 
-# -------------------------------
+# -----------------------------
 # Group setup
-# -------------------------------
+# -----------------------------
 ids <- levels(data$brand)
 m   <- length(ids)
+
+X_full <- model.matrix(~ mileage + fuel_type + age + accident, data = data)
+Y_full <- data$price
+
 Y <- vector("list", m)
 X <- vector("list", m)
 N <- numeric(m)
 
-fit_list <- vector("list", m)
-names(fit_list) <- ids
+BETA.LS <- S2.LS <- NULL
 
 for(j in 1:m){
-  
   idx <- which(data$brand == ids[j])
   
-  group_dat <- droplevels(data[idx, ])
-  N[j] <- nrow(group_dat)
-  terms <- c("mileage", "age")
-  
-  if(length(unique(group_dat$fuel_type)) > 1){
-    terms <- c(terms, "fuel_type")
-  }
-  
-  if(length(unique(group_dat$accident)) > 1){
-    terms <- c(terms, "accident")
-  }
-  
-  form <- as.formula(
-    paste("price ~", paste(terms, collapse = " + "))
-  )
-  
-  fit_list[[j]] <- lm(form, data = group_dat)
-}
-fit <- lm(price ~ mileage + fuel_type + age + accident, data = data)
-summary(fit)
-
-# -------------------------------
-# Extract coefficients
-# -------------------------------
-coef_names <- names(coef(fit))
-
-coef_mat <- matrix(NA, nrow = m, ncol = length(coef_names))
-colnames(coef_mat) <- coef_names
-rownames(coef_mat) <- ids
-
-for(j in 1:m){
-  
-  cf <- coef(fit_list[[j]])
-  
-  matched <- intersect(names(cf), coef_names)
-  
-  coef_mat[j, matched] <- cf[matched]
+  Y[[j]] <- Y_full[idx]
+  X[[j]] <- X_full[idx, , drop = FALSE]
+  N[j]   <- length(idx)
+  fit <- lm(Y[[j]]~-1+X[[j]])
+  BETA.LS <- rbind(BETA.LS, c(fit$coef))
+  S2.LS <- c(S2.LS, summary(fit)$sigma^2)
 }
 
-# -------------------------------
-# View coefficient matrix
-# -------------------------------
-print(coef_mat)
-
-# -------------------------------
-# Plot beta vs group size
-# -------------------------------
-par(mfrow = c(3,3), mar = c(4,4,3,1))
-
-for(k in colnames(coef_mat)){
-  
-  plot(
-    N,
-    coef_mat[,k],
-    pch = 19,
-    col = "blue",
-    xlab = "Group Size",
-    ylab = "Coefficient",
-    main = k
-  )
-  
-  abline(
-    h = coef(fit)[k],
-    col = "red",
-    lwd = 2
-  )
-}
-
-# -------------------------------
-# Optional labeled plot for mileage_z
-# -------------------------------
-par(mfrow = c(1,1))
-
-plot(
-  N,
-  coef_mat[, "mileage"],
-  pch = 19,
-  col = "blue",
-  xlab = "Group Size",
-  ylab = "Mileage Coefficient",
-  main = "Mileage Coefficient vs Group Size"
-)
-
-text(
-  N,
-  coef_mat[, "mileage"],
-  labels = ids,
-  pos = 4,
-  cex = 0.6
-)
-
-abline(
-  h = coef(fit)["mileage"],
-  col = "red",
-  lwd = 2
-)
-
-#### Hierarchical regression model
-# new dataset
-ids<-sort(unique(data$brand)) 
-m<-length(ids)
-Y<-list() ; X<-list() ; N<-NULL
-for(j in 1:m) 
-{
-  Y[[j]]<-data[data$brand==ids[j], 6] 
-  N[j]<- sum(data$brand==ids[j])
-  x1<-data[data$brand==ids[j], 1]
-  x2<-data[data$brand==ids[j], 2] 
-  x3<-data[data$brand==ids[j], 3] 
-  x4<-data[data$brand==ids[j], 4] 
-  
-  X[[j]]<-cbind( rep(1,N[j]), x1, x2, x3, x4)
-}
-
-## mvnormal simulation
+# -----------------------------
+# Utilities
+# -----------------------------
 rmvnorm <- function(n, mu, Sigma){
   mu_l <- length(mu)
   E <- matrix(rnorm(n*mu_l),n,mu_l)
@@ -173,7 +70,7 @@ rwish <- function(n, nu0, S0){
   S[,,1:n]
 }
 # -----------------------------
-# hyperparameter setup
+# hyper-parameter setup
 # -----------------------------
 BETA_clean <- BETA.LS[complete.cases(BETA.LS), ]
 p<-dim(X[[1]])[2]
@@ -245,7 +142,7 @@ for(s in 1:nsim){
   ##store results
   if(s%%10==0) 
   { 
-    cat(s,s2,"\n")
+    if(s %% 1000 == 0) cat(s, s2, "\n")
     S2.b<-c(S2.b,s2);THETA.b<-rbind(THETA.b,t(theta))
     Sigma.ps<-Sigma.ps+solve(iSigma) ; BETA.ps<-BETA.ps+BETA
     SIGMA.PS<-rbind(SIGMA.PS,c(solve(iSigma)))
@@ -260,7 +157,6 @@ BETA.ps  <- BETA.ps / length(S2.b)
 # -----------------------------
 # Diagnostics
 # -----------------------------
-library(coda)
 
 # effective size checks
 effectiveSize(S2.b)
