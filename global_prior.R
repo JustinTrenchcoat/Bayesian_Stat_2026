@@ -1,4 +1,9 @@
-# this is the page where we used global OLS information to build prior.
+# this is the testing page
+# in here we would only use data to fit global OLS
+# and use them to set up groups
+# we will use the global OLS for our Bayesian Prior
+
+
 
 # add OLS beta vs group size
 # effective sample size/MC error vs mean of THETA or other ones
@@ -250,6 +255,51 @@ for(k in 1:ncol(BETA.ps)){
     lwd = 2
   )
 }
-# for (idx in 1:39){
-#   if (any(is.na(X[[idx]]))) cat(idx, "\n")
-# }
+
+# ---------------------------------------
+# Scatter: OLS vs Bayesian (by coefficient, by group)
+# ---------------------------------------
+new_BETA.LS <- NULL
+for (j in 1:m){
+  fit <- lm(Y[[j]]~-1+X[[j]])
+  new_BETA.LS <- rbind(new_BETA.LS, c(fit$coef))
+}
+
+
+par(mfrow = c(3,3), mar = c(5,4,3,1))
+
+coef_names <- colnames(BETA.ps)
+
+for(k in 1:ncol(BETA.ps)){
+  x <-N
+  plot(
+    N,
+    new_BETA.LS[, k],
+    pch = 16, col = "blue",
+    xlab = "Group size",
+    ylab = "Coefficient Value",
+    main = coef_names[k],
+    xaxt = "n"
+  )
+  
+  axis(1, at = x, las = 2, cex.axis = 0.6)
+  
+  points(
+    N,
+    BETA.ps[, k],
+    pch = 17, col = "red"
+  )
+  
+  legend(
+    "topright",
+    legend = c("OLS", "Bayesian"),
+    col = c("blue", "red"),
+    pch = c(16, 17),
+    bty = "n"
+  )
+  abline(
+    h = beta_hat[k],
+    col = "red",
+    lwd = 2
+  )
+}

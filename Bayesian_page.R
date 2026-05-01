@@ -70,19 +70,28 @@ rwish <- function(n, nu0, S0){
   S[,,1:n]
 }
 # -----------------------------
-# hyper-parameter setup
+# hyper-parameter setup 
 # -----------------------------
-BETA_clean <- BETA.LS[complete.cases(BETA.LS), ]
-p<-dim(X[[1]])[2]
+p <- ncol(X_full)
 
-theta<-mu0<-apply(BETA_clean,2,mean)
-BETA <- matrix(NA, m,p)
+# Prior for theta ~ N(mu0, V0)
+mu0 <- rep(0, p)
+V0  <- diag(10, p)
+iL0    <- solve(V0)
 
-s2<-s20<-mean(S2.LS)
-nu0<-1
-eta0<-p+2 
-Sigma<-S0<-L0<-cov(BETA_clean) 
-iL0    <- solve(L0)
+theta <- mu0
+BETA  <- matrix(NA, m, p)
+colnames(BETA) <- names(coef(fit))
+
+# Prior for sigma^2 ~ IG(nu, b0)
+nu0 <- 1
+b0 <- var(Y_full)
+s2 <-s20<- b0
+
+# Prior for Sigma ~ IW(eta0, S0)
+eta0 <- p + 2            
+S0   <- diag(1, p)
+Sigma <- S0
 iSigma <- solve(Sigma)
 # -----------------------------
 # Storage
@@ -93,7 +102,7 @@ SIGMA.PS <- NULL
 BETA.pp  <- NULL
 
 Sigma.ps <- matrix(0, p, p)
-BETA.ps  <- BETA*0
+BETA.ps  <- matrix(0, m, p)
 BETA.store <- list()
 
 # -----------------------------
@@ -205,6 +214,8 @@ plot(beta_x, beta_y,
 # Blue points = posterior mean by group
 # Red line   = global pooled OLS coefficient
 # ---------------------------------------
+fit <- lm(price ~ mileage+ fuel_type + age + accident, data = data)
+beta_hat   <- coef(fit)
 
 par(mfrow = c(3,3), mar = c(4,4,3,1))
 
@@ -229,6 +240,47 @@ for(k in 1:ncol(BETA.ps)){
   #   cex = 0.55
   # )
   
+  abline(
+    h = beta_hat[k],
+    col = "red",
+    lwd = 2
+  )
+}
+# ---------------------------------------
+# Scatter: OLS vs Bayesian (by coefficient, by group)
+# ---------------------------------------
+
+par(mfrow = c(3,3), mar = c(5,4,3,1))
+
+coef_names <- colnames(BETA.ps)
+
+for(k in 1:ncol(BETA.ps)){
+  
+  plot(
+    N,
+    BETA.LS[, k],
+    pch = 16, col = "blue",
+    xlab = "Group size",
+    ylab = "Coefficient Value",
+    main = coef_names[k],
+    xaxt = "n"
+  )
+  
+  axis(1, at = x, las = 2, cex.axis = 0.6)
+  
+  points(
+    N,
+    BETA.ps[, k],
+    pch = 17, col = "red"
+  )
+  
+  legend(
+    "topright",
+    legend = c("OLS", "Bayesian"),
+    col = c("blue", "red"),
+    pch = c(16, 17),
+    bty = "n"
+  )
   abline(
     h = beta_hat[k],
     col = "red",
