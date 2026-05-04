@@ -4,7 +4,6 @@
 # Necessary library
 #-----------------------------
 library(coda)
-
 # -----------------------------
 # Data pre-processing
 # -----------------------------
@@ -23,13 +22,17 @@ data$mileage <- (data$mileage - m_mean) / m_sd
 a_mean <- mean(data$age)
 a_sd   <- sd(data$age)
 data$age <- (data$age - a_mean) / a_sd
-
+# pairs plot for checking correlation, but not included in the report
+vars <- data[, c("price", "mileage", "age", "accident")]
+pairs(vars)
 # -----------------------------
 # Global pooled OLS
 # -----------------------------
 fit <- lm(price ~ mileage+ fuel_type + age + accident, data = data)
 summary(fit)
-
+res <- residuals(fit)
+qqnorm(res, main = "Q-Q Plot of Residuals")
+qqline(res, col = "red", lwd = 2)
 # -----------------------------
 # Group setup
 # -----------------------------
@@ -74,24 +77,30 @@ rwish <- function(n, nu0, S0){
 # Bayesian setup
 # -----------------------------
 beta_hat   <- coef(fit)
-V_beta     <- vcov(fit)
-sigma_hat2 <- summary(fit)$sigma^2
 
 p <- length(beta_hat)
 
-theta <- mu0 <- as.matrix(beta_hat, ncol = 1)
+# --- PRIOR FOR theta ---
+theta <- mu0 <- matrix(0, nrow = p, ncol = 1)   # zero-centered
+L0 <- diag(100, p)                    # covariance matrix
+iL0 <- solve(L0)
 
-BETA <- matrix(rep(beta_hat, each = m), nrow = m, ncol = p, byrow = TRUE)
-colnames(BETA) <- names(beta_hat)
-
-s2  <- s20 <- sigma_hat2
-
-nu0  <- 1
-eta0 <- p + 2
-
-Sigma <- S0 <- L0 <- V_beta*10
-iL0    <- solve(L0)
+# --- PRIOR FOR Sigma ---
+eta0 <- p + 2                          # weakly informative (barely proper)
+S0 <- diag(10, p)                 # no OLS dependence
+Sigma <- S0
 iSigma <- solve(Sigma)
+
+# --- PRIOR FOR sigma^2 ---
+nu0 <- 1
+s20 <- 1                               # weak scale (can tune slightly)
+
+# initialize
+s2 <- s20
+
+# --- INITIAL BETA (unchanged logic, but no need to anchor to OLS) ---
+BETA <- matrix(0, nrow = m, ncol = p)
+colnames(BETA) <- names(beta_hat)
 
 # -----------------------------
 # Storage
@@ -179,6 +188,7 @@ BETA.ps  <- BETA.ps / length(S2.b)
 # Diagnostics
 # -----------------------------
 # effective size checks
+
 effectiveSize(S2.b)
 effectiveSize(THETA.b[,1])
 effectiveSize(THETA.b[,2])
@@ -190,6 +200,8 @@ effectiveSize(THETA.b[,7])
 effectiveSize(THETA.b[,8])
 
 # acf checks
+par(mfrow = c(3,3), mar = c(5,4,3,1))
+
 acf(S2.b)
 acf(THETA.b[,1])
 acf(THETA.b[,2])

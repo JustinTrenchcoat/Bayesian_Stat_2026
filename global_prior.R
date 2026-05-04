@@ -6,7 +6,7 @@ library(coda)
 # -----------------------------
 # Data pre-processing
 # -----------------------------
-data <- read.csv("data/grouped.csv")
+data <- read.csv("data/cleaned.csv")
 data$fuel_type <- factor(data$fuel_type)
 data$brand     <- factor(data$brand)
 data$accident  <- factor(data$accident)
@@ -192,6 +192,8 @@ effectiveSize(THETA.b[,7])
 effectiveSize(THETA.b[,8])
 
 # acf checks
+par(mfrow = c(3,3), mar = c(5,4,3,1))
+
 acf(S2.b)
 acf(THETA.b[,1])
 acf(THETA.b[,2])
