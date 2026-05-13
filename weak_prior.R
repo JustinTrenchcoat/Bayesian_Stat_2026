@@ -1,5 +1,5 @@
 # this is the Bayesian page
-# this is the page where the priors are set up from a global OLS model.
+# this is the page where we have weak prior
 #-----------------------------
 # Necessary library
 #-----------------------------
@@ -81,24 +81,23 @@ beta_hat   <- coef(fit)
 p <- length(beta_hat)
 
 # --- PRIOR FOR theta ---
-theta <- mu0 <- matrix(0, nrow = p, ncol = 1)   # zero-centered
-L0 <- diag(100, p)                    # covariance matrix
+theta <- mu0 <- matrix(0, nrow = p, ncol = 1) 
+L0 <- diag(100, p)            
 iL0 <- solve(L0)
 
 # --- PRIOR FOR Sigma ---
-eta0 <- p + 2                          # weakly informative (barely proper)
-S0 <- diag(10, p)                 # no OLS dependence
+eta0 <- p + 2                      
+S0 <- diag(10, p)               
 Sigma <- S0
 iSigma <- solve(Sigma)
 
 # --- PRIOR FOR sigma^2 ---
 nu0 <- 1
-s20 <- 1                               # weak scale (can tune slightly)
+s20 <- 1                    
 
 # initialize
 s2 <- s20
 
-# --- INITIAL BETA (unchanged logic, but no need to anchor to OLS) ---
 BETA <- matrix(0, nrow = m, ncol = p)
 colnames(BETA) <- names(beta_hat)
 
@@ -158,16 +157,6 @@ for(s in 1:nsim){
     (nu0*s20 + RSS)/2
   )
   
-  # store
-  # # testing the thinning and ESS relation
-  # if(s %% 1000 == 0) cat(s, s2, "\n")
-  # S2.b    <- c(S2.b, s2)
-  # THETA.b <- rbind(THETA.b, t(theta))
-  # Sigma_now <- solve(iSigma)
-  # Sigma.ps <- Sigma.ps + Sigma_now
-  # BETA.ps  <- BETA.ps + BETA
-  # SIGMA.PS <- rbind(SIGMA.PS, c(Sigma_now))
-  
   if(s %% thin == 0){
     
     if(s %% 1000 == 0) cat(s, s2, "\n")
@@ -201,7 +190,6 @@ effectiveSize(THETA.b[,8])
 
 # acf checks
 par(mfrow = c(3,3), mar = c(5,4,3,1))
-
 acf(S2.b)
 acf(THETA.b[,1])
 acf(THETA.b[,2])
@@ -263,39 +251,6 @@ abline(h = mean(THETA.b[,5]), col = "red", lwd = 2)
 
 # Visualizations
 # -----------------------------
-# density comparison
-# plot(density(THETA.b[,2],adj=2),xlim=range(BETA.store[,2]), 
-#      main="",xlab="beta on mileage",ylab="posterior density",lwd=2)
-# lines(density(BETA.store[,2],adj=2),col="gray",lwd=2)
-# legend( "topright",legend=c( expression(theta[mileage]),expression((beta)[mileage])), 
-#         lwd=c(2,2),col=c("black","gray"),bty="n") 
-# 
-# plot(density(THETA.b[,7],adj=2),xlim=range(BETA.store[,7]), 
-#      main="",xlab="beta on mileage",ylab="posterior density",lwd=2)
-# lines(density(BETA.store[,7],adj=2),col="gray",lwd=2)
-# legend( "topright",legend=c( expression(theta[age]),expression((beta)[age])), 
-#         lwd=c(2,2),col=c("black","gray"),bty="n") 
-
-# Density of posteriors
-par(mfrow = c(3,3), mar = c(5,4,3,1))
-plot(density(BETA.ps[,1],adj=2),xlim=range(BETA.store[,1]),
-     main="",xlab="Posterior mean of beta Intersection",ylab="Density",lwd=2)
-plot(density(BETA.ps[,2],adj=2),xlim=range(BETA.store[,2]),
-     main="",xlab="Posterior mean of beta Mileage",ylab="Density",lwd=2)
-plot(density(BETA.ps[,3],adj=2),xlim=range(BETA.store[,3]),
-     main="",xlab="Posterior mean of beta E85",ylab="Density",lwd=2)
-plot(density(BETA.ps[,4],adj=2),xlim=range(BETA.store[,4]),
-     main="",xlab="Posterior mean of beta Gasoline",ylab="Density",lwd=2)
-plot(density(BETA.ps[,5],adj=2),xlim=range(BETA.store[,5]),
-     main="",xlab="Posterior mean of beta Hybrid",ylab="Density",lwd=2)
-plot(density(BETA.ps[,6],adj=2),xlim=range(BETA.store[,6]),
-     main="",xlab="Posterior mean of beta Plug-In Hybrid",ylab="Density",lwd=2)
-plot(density(BETA.ps[,7],adj=2),xlim=range(BETA.store[,7]),
-     main="",xlab="Posterior mean of beta Age",ylab="Density",lwd=2)
-plot(density(BETA.ps[,8],adj=2),xlim=range(BETA.store[,8]),
-     main="",xlab="Posterior mean of beta Accident",ylab="Density",lwd=2)
-
-
 # Visualization on shrinkage:
 new_BETA.LS <- NULL
 for (j in 1:m){

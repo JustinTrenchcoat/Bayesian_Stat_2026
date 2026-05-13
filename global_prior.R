@@ -150,16 +150,6 @@ for(s in 1:nsim){
     (nu0 + sum(N))/2,
     (nu0*s20 + RSS)/2
   )
-  
-  # store
-  # # testing the thinning and ESS relation
-  # if(s %% 1000 == 0) cat(s, s2, "\n")
-  # S2.b    <- c(S2.b, s2)
-  # THETA.b <- rbind(THETA.b, t(theta))
-  # Sigma_now <- solve(iSigma)
-  # Sigma.ps <- Sigma.ps + Sigma_now
-  # BETA.ps  <- BETA.ps + BETA
-  # SIGMA.PS <- rbind(SIGMA.PS, c(Sigma_now))
 
   if(s %% thin == 0){
 
@@ -255,39 +245,6 @@ abline(h = mean(THETA.b[,5]), col = "red", lwd = 2)
 
 # Visualizations
 # -----------------------------
-# density comparison
-# plot(density(THETA.b[,2],adj=2),xlim=range(BETA.store[,2]), 
-#      main="",xlab="beta on mileage",ylab="posterior density",lwd=2)
-# lines(density(BETA.store[,2],adj=2),col="gray",lwd=2)
-# legend( "topright",legend=c( expression(theta[mileage]),expression((beta)[mileage])), 
-#         lwd=c(2,2),col=c("black","gray"),bty="n") 
-# 
-# plot(density(THETA.b[,7],adj=2),xlim=range(BETA.store[,7]), 
-#      main="",xlab="beta on mileage",ylab="posterior density",lwd=2)
-# lines(density(BETA.store[,7],adj=2),col="gray",lwd=2)
-# legend( "topright",legend=c( expression(theta[age]),expression((beta)[age])), 
-#         lwd=c(2,2),col=c("black","gray"),bty="n") 
-
-# Density of posteriors
-par(mfrow = c(3,3), mar = c(5,4,3,1))
-plot(density(BETA.ps[,1],adj=2),xlim=range(BETA.store[,1]),
-     main="",xlab="Posterior mean of beta Intersection",ylab="Density",lwd=2)
-plot(density(BETA.ps[,2],adj=2),xlim=range(BETA.store[,2]),
-     main="",xlab="Posterior mean of beta Mileage",ylab="Density",lwd=2)
-plot(density(BETA.ps[,3],adj=2),xlim=range(BETA.store[,3]),
-     main="",xlab="Posterior mean of beta E85",ylab="Density",lwd=2)
-plot(density(BETA.ps[,4],adj=2),xlim=range(BETA.store[,4]),
-     main="",xlab="Posterior mean of beta Gasoline",ylab="Density",lwd=2)
-plot(density(BETA.ps[,5],adj=2),xlim=range(BETA.store[,5]),
-     main="",xlab="Posterior mean of beta Hybrid",ylab="Density",lwd=2)
-plot(density(BETA.ps[,6],adj=2),xlim=range(BETA.store[,6]),
-     main="",xlab="Posterior mean of beta Plug-In Hybrid",ylab="Density",lwd=2)
-plot(density(BETA.ps[,7],adj=2),xlim=range(BETA.store[,7]),
-     main="",xlab="Posterior mean of beta Age",ylab="Density",lwd=2)
-plot(density(BETA.ps[,8],adj=2),xlim=range(BETA.store[,8]),
-     main="",xlab="Posterior mean of beta Accident",ylab="Density",lwd=2)
-
-
 # Visualization on shrinkage:
 new_BETA.LS <- NULL
 for (j in 1:m){
